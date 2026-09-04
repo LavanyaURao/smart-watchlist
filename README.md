@@ -292,7 +292,12 @@ Only four stocks are surfaced because prioritization is more valuable than showi
 - Watchlist sharing
 
 ---
+# The 100-word pitch
+---
 
+Lookback rethinks the traditional market watchlist by focusing on what changed since your last visit, not just today's prices. Every stock is ranked using a transparent attention score that combines price movement, volume anomalies, 52-week extremes, and price–volume behaviour to surface the names that deserve immediate attention. Instead of overwhelming users with information, Lookback intentionally highlights only the highest-priority opportunities and generates a deterministic market brief that explains why they matter. Built with Next.js, Prisma, PostgreSQL, and JWT authentication, the application emphasizes explainability, resilience, and thoughtful product design over noisy dashboards and black-box recommendations.
+
+---
 # Key Takeaway
 
 Lookback isn't another stock tracker.
