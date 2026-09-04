@@ -1,166 +1,317 @@
-# Lookback — Smart Market Watchlist
+# 📈 Lookback — Smart Market Watchlist
 
-> **What changed since *you* last looked — and what deserves attention now?**
+> **What changed since *you* last looked — and what deserves your attention now?**
 
-Built for **Code by Groww 2026**.  
-This is not a flat price list. It is a system with a point of view.
+A market watchlist that prioritizes **change awareness** over raw prices.
 
----
-
-## Product thesis
-
-A normal watchlist shows prices.  
-**Lookback** answers:
-
-1. What has **meaningfully changed** since my last visit?
-2. What deserves my **limited attention** right now?
-3. Is the tape **conviction**, **absorption**, or **noise**?
+Built for **Code by Groww 2026**.
 
 ---
 
-## The ideas judges will remember
+## Live Demo
 
-### 1. Last look is the unit of change
-When you open a list we freeze every quote. The next visit is compared to *your* memory — not yesterday's close. `lastViewedAt` is first-class in the data model.
+**Application:** https://smart-watchlist-zxjr-iq7nzbxn5.vercel.app/
 
-### 2. Price–volume disagreement (the novel signal)
+
+---
+
+## Why Lookback?
+
+Traditional watchlists answer:
+
+> *"What are today's prices?"*
+
+Lookback answers:
+
+- What has meaningfully changed since **my last visit**?
+- Which stocks deserve my attention right now?
+- Is this move backed by conviction, absorption, or just noise?
+
+Instead of flooding users with data, Lookback highlights only the signals that matter.
+
+---
+
+#  Features
+
+### Change since your last visit
+
+Every watchlist stores the time it was last viewed.
+
+Instead of comparing prices with yesterday's close, Lookback compares today's market against **your own last interaction**, making every revisit instantly meaningful.
+
+---
+
+###  Attention Score
+
+Each stock receives a transparent score based on:
+
+- Price movement
+- Volume anomaly
+- Distance from 52-week high/low
+- Price–volume regime
+
+Only stocks with meaningful changes surface to the top.
+
+---
+
+### 📊 Price–Volume Regimes
+
+Rather than showing price alone, Lookback classifies market behaviour.
+
 | Regime | Meaning |
-|--------|---------|
-| **Conviction** | Price moves + elevated volume → real participation |
-| **Absorption** | High volume, flat price → supply/demand soaking |
-| **Thin** | Price moves on low volume → unreliable tape |
-| **Quiet** | Neither moves nor volume → noise |
-
-Most watchlists never surface this.
-
-### 3. Attention budget of 4
-Working memory is small. Only the top scorers earn the primary focus slots. Toggle **Focus mode** to see only the budget.
-
-### 4. The market is allowed to be closed
-After 15:30 IST (NSE) we freeze the last session and label it. No fake 11pm "live" prints.
-
-### 5. The brief is deterministic
-Four sentences generated from the scoring function. **Never** an LLM on page load. Every word is defendable.
+|---------|---------|
+| Conviction | Strong price move supported by high volume |
+| Absorption | Heavy volume with little price movement |
+| Thin Move | Price moved without participation |
+| Quiet | Little movement and low volume |
 
 ---
 
-## Scoring model (transparent)
+### Focus Mode
+
+Working memory is limited.
+
+Instead of overwhelming users, Lookback intentionally highlights only the **top four** highest-priority stocks.
+
+---
+
+### Deterministic Market Brief
+
+Every watchlist generates a concise four-sentence summary directly from the scoring engine.
+
+No LLM is used during page load, ensuring:
+
+- deterministic behaviour
+- explainable outputs
+- reproducible demos
+
+---
+
+### Market Hours Awareness
+
+The application understands NSE trading hours.
+
+After market close, it freezes the latest session instead of pretending prices are live.
+
+Every quote includes freshness metadata.
+
+---
+
+# Tech Stack
+
+| Layer | Technology |
+|--------|------------|
+| Frontend | Next.js 15 (App Router) |
+| Language | TypeScript |
+| Styling | Tailwind CSS v4 |
+| Backend | Next.js API Routes |
+| ORM | Prisma |
+| Database | postgresql |
+| Authentication | JWT + httpOnly Cookies |
+| Market Data | Deterministic NSE mock feed |
+
+---
+
+# Architecture
 
 ```
+                 +--------------------+
+                 |   Next.js Client   |
+                 +---------+----------+
+                           |
+                    API Routes
+                           |
+        +------------------+------------------+
+        |                                     |
+ Authentication                    Market Engine
+ (JWT Cookies)                (Scoring + Quotes)
+        |                                     |
+        +------------------+------------------+
+                           |
+                       Prisma ORM
+                           |
+                        postgresql DB
+```
+
+---
+
+# Attention Score
+
+The ranking algorithm is fully transparent.
+
+```text
 attentionScore =
   |changePercent| × 1.5
   + max(0, volumeRatio − 1.3) × 8
   + (near 52w high/low ? 6 : 0)
   + (|changePercent| > 2 ? 4 : 0)
-  + regimeBonus (conviction 7 / absorption 5 / thin 3)
+  + regimeBonus
 ```
 
-Threshold ≥ 8 → "needs attention".  
-Weights are opinionated and documented so they can be debated.
+Threshold:
 
----
-
-## Stack
-
-- **Frontend**: Next.js 15 (App Router) + TypeScript + Tailwind CSS v4
-- **Backend**: Next.js API routes
-- **DB**: SQLite + Prisma (zero-config local; swap to Postgres for prod)
-- **Auth**: Email/password + JWT httpOnly cookies
-- **Market data**: Realistic deterministic mock of NSE stocks (time-bucketed movement) so demos are reproducible and resilient without external rate limits
-
----
-
-## How to run
-
-```bash
-npm install
-npm run db:setup   # push schema + seed
-npm run dev
+```
+Score ≥ 8
+→ Needs Attention
 ```
 
-Open http://localhost:3000
-
-**Demo flow**
-1. Register → default "Core book" with RELIANCE, TCS, HDFCBANK, INFY is created
-2. Open the watchlist → read **The brief** first
-3. Hit the sun/moon for light/dark mode
-4. Toggle **Focus** to see only the attention budget of 4
-5. Open **How it thinks** (book icon) — your 5-minute defence
-6. Add/remove symbols, refresh later → ranking updates
+The weights are intentionally opinionated and easy to debate or tune.
 
 ---
 
-## Architecture decisions & trade-offs
-
-| Decision | Why |
-|----------|-----|
-| SQLite + Prisma | Zero ops for the hackathon; schema is production-shaped |
-| Mock market feed | Reproducible demos, no rate-limit risk, every quote still carries `fetchedAt` + `source` + `isStale` |
-| JWT cookies | Simple, secure enough for the scope; no third-party auth complexity |
-| Deterministic brief | Defendable in a room with engineers; LLM is optional later, never on load |
-| Attention budget hard-capped at 4 | Product opinion: more than that is noise |
-| No WebSockets | Prefer clear "as of" timestamps over the illusion of perfect realtime |
-
----
-
-## Edge cases handled
-
-- Empty watchlist
-- Duplicate symbol (409)
-- Unknown / invalid symbol (400)
-- Auth expiry → redirect
-- Stale data badge + still usable
-- Market closed → labelled freeze
-- Concurrent-looking updates (last-write-wins)
-- Large lists → ranked so important names surface first
-- Dark / light mode with system preference + persistence
-
----
-
-## Project structure
+# 📂 Project Structure
 
 ```
 src/
-  app/
-    api/auth/          # register, login, me
-    api/watchlists/    # CRUD + items + analysis
-    api/market/        # symbol search
-    dashboard/
-    watchlist/[id]/   # the product surface
-  components/          # ThemeProvider, ThemeToggle, Sparkline
-  lib/
-    auth.ts
-    market-data.ts     # quote generation + universe
-    market-hours.ts    # NSE session awareness
-    change-detection.ts # attention scoring + brief (core IP)
-    prisma.ts
-    utils.ts
+├── app/
+│   ├── api/
+│   │   ├── auth/
+│   │   ├── market/
+│   │   └── watchlists/
+│   ├── dashboard/
+│   ├── login/
+│   ├── register/
+│   └── watchlist/
+│
+├── components/
+│   ├── Sparkline.tsx
+│   ├── ThemeProvider.tsx
+│   └── ThemeToggle.tsx
+│
+└── lib/
+    ├── auth.ts
+    ├── change-detection.ts
+    ├── market-data.ts
+    ├── market-hours.ts
+    ├── prisma.ts
+    └── utils.ts
+
 prisma/
-  schema.prisma
+├── schema.prisma
+└── seed.ts
 ```
 
 ---
 
-## 100-word pitch
+# Running Locally
 
-> Lookback answers the real question investors ask: "What changed and needs my attention now?"  
-> It freezes the book on every visit, ranks names by a transparent attention score (price move, volume anomaly, 52-week extremes, price–volume regime), and hard-caps focus at 4.  
-> A deterministic four-sentence brief is generated from the same scoring function — never an LLM on page load.  
-> Architecture prioritises resilience: every quote carries timestamp and freshness, the market is allowed to be closed, and the system degrades to last-known-good instead of a blank screen.  
-> A system with opinions you can defend.
+Clone the repository.
+
+```bash
+git clone https://github.com/yourusername/lookback.git
+cd lookback
+```
+
+Install dependencies.
+
+```bash
+npm install
+```
+
+Create a `.env` file.
+
+```env
+DATABASE_URL="file:./dev.db"
+JWT_SECRET=your_secret_here
+```
+
+Initialize the database.
+
+```bash
+npx prisma db push
+npm run seed
+```
+
+Start the development server.
+
+```bash
+npm run dev
+```
+
+Open:
+
+```
+http://localhost:3000
+```
 
 ---
 
-## What we would do next (production)
+# Demo Flow
 
-1. Real multi-source market feed with reconciliation
-2. Historical snapshots so "change since last view" is exact delta
-3. Background refresh of popular symbols + per-user rate limits
-5. Alerts and notification preferences
-
-All of the above sit on top of the current architecture without a rewrite.
+1. Register a new account
+2. A default watchlist is automatically created
+3. Explore the generated market brief
+4. Toggle Focus Mode
+5. Add or remove stocks
+6. Return later to see what changed since your previous visit
 
 ---
 
-Built for Code by Groww 2026.  
-Ready to be defended.
+# Design Decisions
+
+### postgresql + Prisma
+
+Chosen for zero-configuration local development while keeping a production-ready schema.
+
+### Deterministic Market Feed
+
+A reproducible mock market avoids API rate limits and ensures judges always see consistent behaviour.
+
+### Explainable Intelligence
+
+Every recommendation comes directly from the scoring model instead of a black-box AI response.
+
+### Hard Attention Budget
+
+Only four stocks are surfaced because prioritization is more valuable than showing everything.
+
+---
+
+# Edge Cases
+
+- Empty watchlists
+- Duplicate symbols
+- Invalid symbols
+- Expired authentication
+- Stale market data
+- Market closed handling
+- Last-write-wins updates
+- Large watchlists
+- Theme persistence
+
+---
+
+# Future Improvements
+
+- Live NSE market feeds
+- Historical quote snapshots
+- Real-time updates using WebSockets
+- Personalized alerts
+- Multi-device synchronization
+- Portfolio analytics
+- Watchlist sharing
+
+---
+
+# Key Takeaway
+
+Lookback isn't another stock tracker.
+
+It is a watchlist designed around **human attention**.
+
+Instead of asking users to inspect dozens of prices, it continuously answers one simple question:
+
+> **"What changed since I last looked, and what deserves my attention now?"**
+
+![Next.js](https://img.shields.io/badge/Next.js-15-black)
+![TypeScript](https://img.shields.io/badge/TypeScript-blue)
+![Prisma](https://img.shields.io/badge/Prisma-ORM-2D3748)
+![TailwindCSS](https://img.shields.io/badge/Tailwind-v4-38B2AC)
+
+Website snapshot:
+---
+
+<img width="1311" height="755" alt="image" src="https://github.com/user-attachments/assets/1bbe4ff9-4a85-48bb-87fd-2e064452c213" />
+
+
+Built for **Code by Groww 2026**.
