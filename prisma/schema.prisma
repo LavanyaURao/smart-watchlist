@@ -1,0 +1,63 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String      @id @default(cuid())
+  email        String      @unique
+  name         String?
+  passwordHash String
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  watchlists   Watchlist[]
+}
+
+model Watchlist {
+  id           String          @id @default(cuid())
+  name         String
+  userId       String
+  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lastViewedAt DateTime?       // Critical for "what changed since last check"
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  items        WatchlistItem[]
+
+  @@index([userId])
+}
+
+model WatchlistItem {
+  id          String    @id @default(cuid())
+  watchlistId String
+  watchlist   Watchlist @relation(fields: [watchlistId], references: [id], onDelete: Cascade)
+  symbol      String
+  addedAt     DateTime  @default(now())
+  notes       String?
+
+  @@unique([watchlistId, symbol])
+  @@index([watchlistId])
+}
+
+// Snapshot of market data at a point in time — used for change detection & resilience
+model PriceSnapshot {
+  id            String   @id @default(cuid())
+  symbol        String
+  price         Float
+  previousClose Float
+  change        Float
+  changePercent Float
+  volume        Float
+  avgVolume20d  Float?   // for volume anomaly detection
+  high52w       Float?
+  low52w        Float?
+  fetchedAt     DateTime @default(now())
+  source        String   @default("mock") // "mock" | "live" etc.
+  isStale       Boolean  @default(false)
+
+  @@index([symbol, fetchedAt])
+  @@index([symbol])
+}
