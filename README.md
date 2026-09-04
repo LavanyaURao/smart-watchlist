@@ -156,7 +156,6 @@ prisma/
 1. Real multi-source market feed with reconciliation
 2. Historical snapshots so "change since last view" is exact delta
 3. Background refresh of popular symbols + per-user rate limits
-4. Optional "Rewrite brief with Grok" button (still never on load)
 5. Alerts and notification preferences
 
 All of the above sit on top of the current architecture without a rewrite.
